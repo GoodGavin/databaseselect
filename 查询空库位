@@ -1,0 +1,32 @@
+-- Step 1: Generate all possible HIDs
+WITH AllHIDs AS (
+    SELECT 
+        CONCAT('A', RIGHT('0' + CAST(x AS VARCHAR(2)), 2), l.Layer) AS HID
+    FROM 
+        (SELECT TOP 23 ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS x FROM sys.objects) AS c
+    CROSS JOIN 
+        (VALUES ('1'), ('2'), ('3'), ('4')) AS l (Layer)
+)
+
+-- Step 2: Count current HIDs in FoamData
+, HIDCounts AS (
+    SELECT 
+        HID,
+        COUNT(*) AS CurrentCount
+    FROM 
+        FoamData
+    GROUP BY 
+        HID
+)
+
+-- Step 3: Combine and calculate empty slots
+SELECT 
+    a.HID,
+    ISNULL(h.CurrentCount, 0) AS CurrentCount,
+    5 - ISNULL(h.CurrentCount, 0) AS EmptySlots
+FROM 
+    AllHIDs a
+LEFT JOIN 
+    HIDCounts h ON a.HID = h.HID
+ORDER BY 
+    a.HID;
